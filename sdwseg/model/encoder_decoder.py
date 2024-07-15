@@ -17,7 +17,9 @@ class EncoderDecoder(nn.Module):
                  decoder: Dict,
                  necker: Optional[Dict] = None,
                  auxiliary: Optional[Union[List[Dict], Dict]] = None,
-                 ignore_index: int = None):
+                 ignore_index: int = None,
+                 out_type = None):
+
         super(EncoderDecoder, self).__init__()
         self.encoder = build_network(encoder)
         self.decoder = build_network(decoder)
@@ -35,6 +37,7 @@ class EncoderDecoder(nn.Module):
             else:
                 self.auxiliary = build_network(auxiliary)
         self.ignore_index = ignore_index
+        self.out_type = out_type
         return
 
     @property
@@ -86,6 +89,9 @@ class EncoderDecoder(nn.Module):
             seg_pred = F.sigmoid(seg_pred)
         else:
             seg_pred = seg_pred.argmax(dim=1).unsqueeze(1)
+            if self.out_type is not None and seg_pred.dtype != self.out_type:
+                # 推荐只在推理使用, 节约内存
+                seg_pred = seg_pred.to(self.out_type)
         return seg_pred
 
     def preparate_deploy(self):

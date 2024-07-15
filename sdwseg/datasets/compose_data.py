@@ -5,19 +5,28 @@ import os
 import engine.transforms.functional as F
 from engine.data.build import BUILD_DATASET_REGISTRY
 from engine.data.dataset import EngineDataSet
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 __all__ = [
     'ComposeDataSet'
 ]
 
 
-def parse_file_path(root_path: str, txt_names: List[str]) -> List[Tuple[str, str]]:
+def parse_file_path(root_path: str, txt_names: List[Union[str, Tuple[str, float]]]) -> List[Tuple[str, str]]:
     file_names = list()
     for txt_name in txt_names:
+        if isinstance(txt_name, tuple):
+            txt_name, ratio = txt_name
+        else:
+            ratio = 1.
+        ratio = min(1, ratio)
+
         h = open(os.path.join(root_path, txt_name), mode='r')
-        file_names.extend([line.strip('\n') for line in h.readlines()])
+        lines = [line.strip('\n') for line in h.readlines()]
         h.close()
+        if ratio < 1:
+            lines = random.sample(lines, k=int(ratio * len(lines)))
+        file_names.extend(lines)
 
     file_paths = set()
 
@@ -38,18 +47,20 @@ def parse_file_path(root_path: str, txt_names: List[str]) -> List[Tuple[str, str
 
 @BUILD_DATASET_REGISTRY.register()
 class ComposeDataSet(EngineDataSet):
-    def __init__(self, data_root_path, require_txt, transformer: List, select_nums=0):
+    def __init__(self, data_root_path, require_txt, transformer: List, select_nums=0, to_bin_value: int = -1):
         """
         :param data_root_path:
         :param require_txt:
         :param transformer:
         :param select_nums:
+        :param to_bin_value: 兼容老的皮肤数据衣服数据， 它们标签的取值 0 或 255， 当to_bin_value大于0时老数据会被转换成 0 或 1
         """
         super(ComposeDataSet, self).__init__(transformer)
 
         self.file_names = parse_file_path(data_root_path, require_txt)
         random.shuffle(self.file_names)
 
+        self.to_bin_value = to_bin_value
         if len(self.file_names) > select_nums > 0:
             self.file_names = random.sample(self.file_names, k=select_nums)
         return
@@ -68,6 +79,9 @@ class ComposeDataSet(EngineDataSet):
 
         img = cv2.cvtColor(cv2.imread(image_path, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+
+        if self.to_bin_value > 0:
+            _, mask = cv2.threshold(mask, self.to_bin_value, 1, cv2.THRESH_BINARY)
 
         result = dict(
             img=img,

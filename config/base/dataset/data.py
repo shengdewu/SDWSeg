@@ -80,6 +80,7 @@ dataloader = dict(
         name='ComposeDataSet',
         data_root_path=img_root,
         require_txt=['train.txt', 'train2.txt'],
+        # require_txt=['train.txt', ('train2.txt', 0.1)],
         transformer=t_transformer,
     ),
     val_data_set=dict(
