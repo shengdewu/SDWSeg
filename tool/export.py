@@ -6,7 +6,6 @@ import torch
 import sys
 import os
 
-
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 
@@ -17,6 +16,7 @@ def export_formats():
         ['ONNX', 'onnx', '.onnx', True, True],
     ]
     return pd.DataFrame(x, columns=['Format', 'Argument', 'Suffix', 'CPU', 'GPU'])
+
 
 def export_pt(model, file):
     f = file.replace('.pth', '.pt')
@@ -92,7 +92,7 @@ def main(config: str,
     from tool.create_encoder_decoder import create_encoder_decoder
     from tool.performance import test_performance
 
-    model = create_encoder_decoder(config, weight)
+    model = create_encoder_decoder(config, weight, device)
     test_performance(model, imgsz)
 
     # Exports
