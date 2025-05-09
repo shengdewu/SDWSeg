@@ -15,7 +15,7 @@ from engine.transforms import Resize, Normalize
 
 
 class Segment:
-    def __init__(self, img_size, out_path, weight:str, config:str, device='cpu',show_mask=False, keep_ratio=False):
+    def __init__(self, img_size, out_path, weight: str, config: str, device='cpu', show_mask=False, keep_ratio=False):
         resize_cfg = dict(interpolation='INTER_LINEAR',
                           target_size=img_size,
                           keep_ratio=keep_ratio,
@@ -39,7 +39,8 @@ class Segment:
         self.model = self.load_model(weight, config)
         return
 
-    def load_model(self, weights: str, config: Optional[str] = None):
+    @staticmethod
+    def load_model(weights: str, config: Optional[str] = None):
         if weights.lower().endswith('onnx'):
             from tool.py_onnx import PyOnnx
             model = PyOnnx(weights)
@@ -56,7 +57,7 @@ class Segment:
         return sum(flag) > 0
 
     @torch.no_grad()
-    def run_function(self, file_names):
+    def run_function(self, file_names, num_classes: int):
         cost_time = list()
         for file_name in tqdm.tqdm(file_names):
             img_name = file_name.split('/')[-1]
@@ -85,7 +86,7 @@ class Segment:
                 logits = logits[0]
 
             assert logits.shape[0] == logits.shape[1] == 1
-            mask = logits[0][0].mul(255).clamp_(0, 255).to('cpu').detach().numpy().astype(np.uint8)
+            mask = logits[0][0].mul(255 // num_classes).clamp_(0, 255).to('cpu').detach().numpy().astype(np.uint8)
 
             h, w, c = img_rgb.shape
             mask = cv2.resize(mask, dsize=(w, h), interpolation=cv2.INTER_NEAREST)
@@ -105,15 +106,17 @@ class Segment:
         print('cost time {}'.format(sum(cost_time) / (len(cost_time) + 1)))
         return
 
-    def __call__(self, source:str, fformat:Tuple[str]):
+    def __call__(self, source: str, fformat: Tuple[str], num_classes: int):
 
         if self.is_jpg(source, fformat):
             file_names = [source]
         else:
-            file_names = [f'{source}/{name}' for name in os.listdir(source) if self.is_jpg(name, fformat) and not name.startswith('face')]
+            file_names = [f'{source}/{name}' for name in os.listdir(source) if
+                          self.is_jpg(name, fformat) and not name.startswith('face')]
 
-        self.run_function(file_names)
+        self.run_function(file_names, num_classes)
         return
+
 
 def parse_opt():
     parser = argparse.ArgumentParser()
@@ -131,6 +134,6 @@ def parse_opt():
 
 if __name__ == '__main__':
     opt = parse_opt()
-    container = Segment(img_size=opt.imgsz, out_path=opt.out_path, weight=opt.weight, config=opt.config, show_mask=opt.show_mask)
-    container(source=opt.source,  fformat=opt.fformat)
-
+    container = Segment(img_size=opt.imgsz, out_path=opt.out_path, weight=opt.weight, config=opt.config,
+                        show_mask=opt.show_mask)
+    container(source=opt.source, fformat=opt.fformat, num_classes=opt.num_classes)
