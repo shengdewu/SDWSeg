@@ -34,7 +34,7 @@ def load_config(file_name):
     return cfg_dict
 
 
-def create_encoder_decoder(cfg_path: str, checkpoint: str = '', device: str = '') -> EncoderDecoder:
+def create_encoder_decoder(cfg_path: str, checkpoint: str = '', device: str = 'cpu') -> EncoderDecoder:
     config = load_config(cfg_path)
     model = build_network(config['model'])
     if checkpoint != '':
