@@ -1,0 +1,23 @@
+services:
+  sdwseg:
+    image: sdwseg:3.0
+    container_name: sdwseg
+    command: --config-file /home/thinkbook/workspace/SDWSeg/config/pdpp.py
+    restart: no
+    runtime: nvidia
+    privileged: true
+    network_mode: none
+    volumes:
+      - /home/thinkbook:/home/thinkbook
+      - /mnt/sda:/mnt/sda
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: 1
+    shm_size: '8g'
+    cpuset: "14,15,16,17"

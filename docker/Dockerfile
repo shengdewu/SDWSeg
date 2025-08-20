@@ -1,4 +1,4 @@
-FROM dl.nvidia/cuda:11.1-cudnn8-devel-torch1.10.0
+FROM dl.nvidia/cuda:12.8-cudnn9-runtime-torch2.7.1
 
 COPY sdwseg /home/sdwseg/sdwseg
 copy util /home/sdwseg/util
