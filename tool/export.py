@@ -1,3 +1,4 @@
+from typing import Union, List
 import argparse
 import warnings
 
@@ -76,13 +77,19 @@ def export_onnx(model, im, file, opset, dynamic, simplify):
 
 def main(config: str,
          weight: str,
-         imgsz=608,  # image (height, width)
+         imgsz:Union[int, List]=608,  # image (height, width)
          device='cpu',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
          optimize=False,
          simplify=False,  # ONNX: simplify model
          opset=12,  # ONNX: opset version
          include=('torchscript', 'onnx'),  # include formats
          ):
+
+    if isinstance(imgsz, List):
+        assert len(imgsz) == 2
+    else:
+        imgsz = [imgsz, imgsz]
+
     include = [x.lower() for x in include]  # to lowercase
     fmts = tuple(export_formats()['Argument'])  # --include arguments
     flags = [x in include for x in fmts]
@@ -96,7 +103,7 @@ def main(config: str,
     test_performance(model, imgsz)
 
     # Exports
-    im = torch.zeros(1, 3, imgsz, imgsz).to(device)
+    im = torch.zeros(1, 3, imgsz[0], imgsz[1]).to(device)
     f = [''] * len(fmts)  # exported filenames
     warnings.filterwarnings(action='ignore', category=torch.jit.TracerWarning)  # suppress TracerWarning
     if pt:
@@ -115,7 +122,7 @@ def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='', help='config')
     parser.add_argument('--weight', type=str, help='model.pt path(s)')
-    parser.add_argument('--imgsz', type=int, default=608, help='image (h, w)')
+    parser.add_argument('--imgsz', type=int, nargs='+', default=608, help='image (h, w)')
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--optimize', action='store_true', help='TorchScript: optimize for mobile')
     parser.add_argument('--simplify', action='store_true', help='ONNX: simplify model')
