@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch import Tensor
 from typing import Dict, Optional, Union, List, Tuple
-from sdwseg.model.utils.accuracy import accuracy
+from sdwseg.model.utils.accuracy import compute_miou
 
 __all__ = [
     'EncoderDecoder'
@@ -18,7 +18,7 @@ class EncoderDecoder(nn.Module):
                  necker: Optional[Dict] = None,
                  auxiliary: Optional[Union[List[Dict], Dict]] = None,
                  ignore_index: int = None,
-                 out_type = None):
+                 out_type=None):
 
         super(EncoderDecoder, self).__init__()
         self.encoder = build_network(encoder)
@@ -76,7 +76,7 @@ class EncoderDecoder(nn.Module):
             result['classes'] = seg_pred.shape[1]
 
         gt_semantic_seg = gt_semantic_seg.squeeze(1)
-        result['seg_acc'] = accuracy(
+        result['seg_acc'] = compute_miou(
             seg_pred, gt_semantic_seg, ignore_index=self.ignore_index)
 
         return result

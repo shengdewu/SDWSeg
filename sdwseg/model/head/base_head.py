@@ -4,7 +4,7 @@ from typing import Optional, Dict, Tuple
 
 from engine.loss import LossKeyCompose
 
-from ..utils.accuracy import accuracy
+from ..utils.accuracy import compute_miou
 
 __all__ = [
     'BaseHead',
@@ -32,7 +32,7 @@ class BaseHead(nn.Module):
     def forward_train(self, x_stages, shape, gt_semantic_seg):
         x = self(x_stages, shape)
         loss = self.loss_fn(dict(regseg=[(x, gt_semantic_seg)]))
-        acc = accuracy(x.detach(), gt_semantic_seg, ignore_index=self.ignore_index)
+        acc = compute_miou(x.detach(), gt_semantic_seg, ignore_index=self.ignore_index)
         if isinstance(acc, Tuple):
             acc = acc[0]
         return loss, acc.item()

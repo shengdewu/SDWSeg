@@ -1,8 +1,62 @@
 import torch
 import torch.nn as nn
 from torch import Tensor
-import torch.nn.functional as F
 from typing import Union, Tuple, Optional
+
+
+def compute_miou(p_tensor: Tensor,
+                 t_tensor: Tensor,
+                 ignore_index: Optional[int] = None,
+                 thresh: float = 0.5):
+    """
+    iou = tp / tp + fn + fp : 真阳 / 真阳 + 假负(正确的预测成错误的) + 假阳(错误的预测成正确的)
+    :param p_tensor: 语义分割模型的原始值，没有经过 argmax or sigmoid, shape (N, num_class, ...)
+    :param t_tensor: 标签, shape (N, 1, ...) or (N, ...)
+    :param ignore_index: 标签中需要忽略的值
+    :param thresh:当预测类别执行sigmoid时使用
+    :return float | tuple[float]
+    """
+    batch, num_classes, w, h = p_tensor.shape
+    if num_classes > 1:
+        predicts = p_tensor.argmax(dim=1)
+    else:
+        predicts = p_tensor[:, 0, ...].sigmoid()
+        predicts = torch.where(predicts >= thresh, 1, 0)
+
+    if t_tensor.ndim == p_tensor.ndim:
+        assert t_tensor.shape[1] == 1
+        targets = t_tensor[:, 0, ...]
+    else:
+        assert p_tensor.ndim == t_tensor.ndim + 1
+        targets = t_tensor
+
+    if ignore_index is not None:
+        valid_mask = (targets != ignore_index).float()
+        predicts = predicts * valid_mask
+        targets = targets * valid_mask
+
+    num_classes = num_classes + 1 if num_classes == 1 else num_classes
+    predicts = predicts.long()
+    targets = targets.long()
+
+    confusion_matrix = torch.zeros((num_classes, num_classes), device=predicts.device)
+
+    for b in range(targets.shape[0]):
+        predict = predicts[b].flatten()
+        target = targets[b].flatten()
+        indices = num_classes * target + predict
+        confusion_matrix += torch.bincount(indices, minlength=num_classes ** 2).reshape(num_classes, num_classes)
+
+    iou = list()
+    for i in range(num_classes):
+        intersection = confusion_matrix[i, i]
+        union = confusion_matrix[i, :].sum() + confusion_matrix[:, i].sum() - intersection
+        if union == 0:
+            iou.append(torch.tensor(0.0, device=predicts.device))
+        else:
+            iou.append(intersection / union)
+
+    return torch.mean(torch.tensor(iou))
 
 
 def accuracy_multi_class(pred: Tensor, target: Tensor,
