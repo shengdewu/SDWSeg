@@ -11,6 +11,7 @@ __all__ = [
     'ComposeDataSet'
 ]
 
+cv2.setNumThreads(0)
 
 def parse_file_path(root_path: str, txt_names: List[Union[str, Tuple[str, float]]]) -> List[Tuple[str, str]]:
     file_names = list()
