@@ -4,13 +4,15 @@ import time
 
 
 def test_performance(model: torch.nn.Module, in_size):
+    shape = (1, 3) + in_size
+
     model.eval()
 
-    flops, params = profile(model, inputs=(torch.ones((1, 3, in_size[0], in_size[1]), dtype=torch.float32),), verbose=False)
+    flops, params = profile(model, inputs=(torch.ones(shape, dtype=torch.float32),), verbose=False)
     total_time = 0
     cnt = 10
     for i in range(cnt):
-        in_tensor = torch.randn((1, 3, in_size[0], in_size[1]), dtype=torch.float32)
+        in_tensor = torch.randn(shape, dtype=torch.float32)
         start_time = time.time()
         model(in_tensor)
         total_time += time.time() - start_time
