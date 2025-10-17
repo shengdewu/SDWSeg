@@ -1,6 +1,6 @@
 services:
   sdwseg:
-    image: sdwseg:3.0
+    image: sdwseg:2.0
     container_name: sdwseg
     command: --config-file /home/thinkbook/workspace/SDWSeg/config/pdpp.py
     restart: no
@@ -10,8 +10,8 @@ services:
     volumes:
       - /home/thinkbook:/home/thinkbook
       - /mnt/sda:/mnt/sda
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=0
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=0
     deploy:
       resources:
         reservations:
